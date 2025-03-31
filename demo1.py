@@ -6,11 +6,19 @@ vpath_ori, vpath_gen = [
     "dinkeroutput_copy9.mp4",
 ]
 
+vpath_ori, vpath_gen = [
+    "/Users/ryan/Downloads/dinkeroutput_copy22.mp4",
+    "/Users/ryan/Downloads/dinkeroutput_copy26.mp4",
+]
+
 vori, vgen = rp.load_videos(
     vpath_ori,
     vpath_gen,
     use_cache=True,
 )
+
+assert vori.shape==vgen.shape
+VT,VH,VW,VC=vori.shape
 
 #I flippa and I floppa
 vori,vgen=(vgen,vori)
@@ -25,6 +33,7 @@ cum_flow_gen = rp.accumulate_flows(flow_gen, reduce=False)
 cum_flow_ori = torch.tensor(cum_flow_ori)
 cum_flow_gen = torch.tensor(cum_flow_gen)
 
+cum_flow_delta = cum_flow_gen-cum_flow_ori
 
 def scatter_add_mean(image,dx,dy):
     rp.validate_tensor_shapes(
@@ -53,10 +62,20 @@ def scatter_add_mean(image,dx,dy):
     
     return RGB
 
-scatter_frames = (scatter_add_mean(rp.as_torch_image(vori[0]), dx, dy) for dx, dy in cum_flow_ori)
+scatter_frames = (
+    scatter_add_mean(rp.as_torch_image(frame), dx, dy)
+    for frame, (dx, dy) in zip(vori, cum_flow_delta)
+)
+
+scatter_frames = (rp.as_numpy_image(x) for x in scatter_frames)
+
+preview_frames = (
+    rp.vertically_concatenated_images(ori, scat, gen)
+    for ori, scat, gen in zip(vori, scatter_frames, vgen)
+)
 
 
 rp.display_video(
-    scatter_frames,
+    rp.eta(preview_frames, length=VT),
     loop=True,
 )
