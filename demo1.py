@@ -21,7 +21,7 @@ assert vori.shape==vgen.shape
 VT,VH,VW,VC=vori.shape
 
 #I flippa and I floppa
-vori,vgen=(vgen,vori)
+#vori,vgen=(vgen,vori)
 
 #vori, vgen = resize_lists(vori, vgen, length=9)
 
@@ -47,8 +47,8 @@ def scatter_add_mean(image,dx,dy):
         image, dx, dy,
         relative=True,
         prepend_ones=True,
-         interp="bilinear",
-        #interp="floor",
+         #interp="bilinear",
+        interp="floor",
     )
     RGB = ARGB[1: ]
     A   = ARGB[ :1]
@@ -67,11 +67,39 @@ scatter_frames = (
     for frame, (dx, dy) in zip(vori, cum_flow_delta)
 )
 
+ori_scatter_frames = (
+    scatter_add_mean(rp.as_torch_image(vori[0]), dx, dy)
+    for dx, dy in cum_flow_ori
+)
+
+gen_scatter_frames = (
+    scatter_add_mean(scatter_add_mean(rp.as_torch_image(vgen[0]), dx, dy)
+    ,- dx, -dy)
+    for dx, dy in cum_flow_gen
+)
+
+
 scatter_frames = (rp.as_numpy_image(x) for x in scatter_frames)
 
 preview_frames = (
-    rp.vertically_concatenated_images(ori, scat, gen)
-    for ori, scat, gen in zip(vori, scatter_frames, vgen)
+    rp.vertically_concatenated_images(
+        as_numpy_images(
+            [
+                wori,
+                ori,
+                scat,
+                gen,
+                wgen,
+            ]
+        )
+    )
+    for wori, ori, scat, gen, wgen in zip(
+        ori_scatter_frames,
+        vori,
+        scatter_frames,
+        vgen,
+        gen_scatter_frames,
+    )
 )
 
 
@@ -79,3 +107,5 @@ rp.display_video(
     rp.eta(preview_frames, length=VT),
     loop=True,
 )
+
+#del flow_ori,flow_gen
