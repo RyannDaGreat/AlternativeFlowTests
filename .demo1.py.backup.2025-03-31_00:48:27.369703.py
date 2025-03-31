@@ -12,18 +12,15 @@ vori, vgen = rp.load_videos(
     use_cache=True,
 )
 
-#I flippa and I floppa
 vori,vgen=(vgen,vori)
 
 #vori, vgen = resize_lists(vori, vgen, length=9)
 
-if "flow_ori" not in vars(): flow_ori = rp.calculate_flows(vori, show_progress=True)
-if "flow_gen" not in vars(): flow_gen = rp.calculate_flows(vgen, show_progress=True)
+if "flow_ori" not in vars():
+    flow_ori = rp.calculate_flows(vori, show_progress=True)
 
 cum_flow_ori = rp.accumulate_flows(flow_ori, reduce=False)
-cum_flow_gen = rp.accumulate_flows(flow_gen, reduce=False)
 cum_flow_ori = torch.tensor(cum_flow_ori)
-cum_flow_gen = torch.tensor(cum_flow_gen)
 
 
 def scatter_add_mean(image,dx,dy):
@@ -53,7 +50,7 @@ def scatter_add_mean(image,dx,dy):
     
     return RGB
 
-scatter_frames = (scatter_add_mean(rp.as_torch_image(vori[0]), dx, dy) for dx, dy in cum_flow_ori)
+scatter_frames = (rp.scatter_add_mean(rp.as_torch_image(vori[0]), dx, dy) for dx, dy in cum_flow_ori)
 
 
 rp.display_video(
